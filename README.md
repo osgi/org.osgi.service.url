@@ -1,5 +1,9 @@
 # org.osgi.service.url
 
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/osgi/org.osgi.service.url/badge)](https://securityscorecards.dev/viewer/?uri=github.com/osgi/org.osgi.service.url)
+[![build](https://github.com/osgi/org.osgi.service.url/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/osgi/org.osgi.service.url/actions/workflows/build.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/org.osgi/org.osgi.service.url)](https://central.sonatype.com/artifact/org.osgi/org.osgi.service.url)
+
 OSGi Specification repo for org.osgi.service.url
 
 Part of the [OSGi Specification Project](https://projects.eclipse.org/projects/technology.osgi).
