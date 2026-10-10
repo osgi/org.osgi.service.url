@@ -17,6 +17,10 @@
  *******************************************************************************/
 package org.osgi.test.cases.url.junit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.fail;
+
 import java.io.InputStream;
 import java.net.ContentHandler;
 import java.net.MalformedURLException;
@@ -24,13 +28,20 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Hashtable;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.url.URLConstants;
 import org.osgi.service.url.URLStreamHandlerService;
-import org.osgi.test.support.OSGiTestCase;
+import org.osgi.test.common.annotation.InjectBundleContext;
 
-public class UrlHandlerControl extends OSGiTestCase {
+public class UrlHandlerControl {
+
+	@InjectBundleContext
+	BundleContext		context;
 	// ******************************************************
 	// Fields
 	// ******************************************************
@@ -54,7 +65,8 @@ public class UrlHandlerControl extends OSGiTestCase {
 	private Hashtable<String,Object>	contentServiceProperty1;
 	private Hashtable<String,Object>	contentServiceProperty2;
 
-	protected void setUp() {
+	@BeforeEach
+	public void setUp() {
 		urlServiceProperty1 = new Hashtable<>();
 		urlServiceProperty1.put(URLConstants.URL_HANDLER_PROTOCOL,
 				new String[] {protocol1, protocol2});
@@ -76,22 +88,23 @@ public class UrlHandlerControl extends OSGiTestCase {
 		contentHandler1 = new CustomContentHandler1();
 		contentHandler2 = new CustomContentHandler2();
 		// register services
-		urlHandlerSerReg1 = getContext().registerService(
+		urlHandlerSerReg1 = context.registerService(
 				URLStreamHandlerService.class, urlHandler1,
 				urlServiceProperty1);
-		urlHandlerSerReg2 = getContext().registerService(
+		urlHandlerSerReg2 = context.registerService(
 				URLStreamHandlerService.class, urlHandler2,
 				urlServiceProperty2);
 		// register services
-		contentHandlerSerReg1 = getContext().registerService(
+		contentHandlerSerReg1 = context.registerService(
 				ContentHandler.class, contentHandler1,
 				contentServiceProperty1);
-		contentHandlerSerReg2 = getContext().registerService(
+		contentHandlerSerReg2 = context.registerService(
 				ContentHandler.class, contentHandler2,
 				contentServiceProperty2);
 	}
 
-	protected void tearDown() {
+	@AfterEach
+	public void tearDown() {
 		unregisterService(urlHandlerSerReg2);
 		unregisterService(urlHandlerSerReg1);
 		unregisterService(contentHandlerSerReg2);
@@ -115,6 +128,7 @@ public class UrlHandlerControl extends OSGiTestCase {
 	/**
 	 * Test accessing a url when there is no associated url handler for it
 	 */
+	@Test
 	public void testAccessingUrlWhenNoHandlerRegistered() throws Exception {
 		urlHandlerSerReg1.unregister();
 		urlHandlerSerReg2.unregister();
@@ -136,19 +150,20 @@ public class UrlHandlerControl extends OSGiTestCase {
 	/**
 	 * Test accessing a url after registering a url handler for it
 	 */
+	@Test
 	public void testAccessingUrlWhenHandlerRegistered() throws Exception {
 		// test protocol1
 		URL url = new URL(protocol1 + "://test");
 		URLConnection con = url.openConnection();
 		URLConnection reqd = urlHandler1.getConnectionObject();
-		assertEquals("Opening connection after registering handler for "
-				+ protocol1, reqd, con);
+		assertThat(con).as("Opening connection after registering handler for "
+				+ protocol1).isEqualTo(reqd);
 		// test protocol2
 		url = new URL(protocol2 + "://test");
 		con = url.openConnection();
 		reqd = urlHandler1.getConnectionObject();
-		assertEquals("Opening connection after registering handler for "
-				+ protocol2, reqd, con);
+		assertThat(con).as("Opening connection after registering handler for "
+				+ protocol2).isEqualTo(reqd);
 	}
 
 	// ******************************************************
@@ -156,10 +171,11 @@ public class UrlHandlerControl extends OSGiTestCase {
 	/**
 	 * Test getting the content after registering a content handler for it
 	 */
+	@Test
 	public void testContentHandlerWhenHandlerRegistered() throws Exception {
 		URL url = new URL(protocol1 + "://test");
 		Object ob = url.getContent();
-		assertEquals("Get content", "CustomContentHandler1", ob);
+		assertThat(ob).as("Get content").isEqualTo("CustomContentHandler1");
 	}
 	
 	// ******************************************************
@@ -167,6 +183,7 @@ public class UrlHandlerControl extends OSGiTestCase {
 	/**
 	 * Test whether the url handler points to the highest ranking service
 	 */
+	@Test
 	public void testUrlHandlerAfterChangingRank() throws Exception {
 		// increase url handler ranking for handler2
 		urlServiceProperty2.put(Constants.SERVICE_RANKING, Integer.valueOf(15));
@@ -176,13 +193,13 @@ public class UrlHandlerControl extends OSGiTestCase {
 		URLConnection con = url.openConnection();
 		// handler 2 now has the highest rank
 		URLConnection reqd = urlHandler2.getConnectionObject();
-		assertEquals("Opening connection after changing rank", reqd, con);
+		assertThat(con).as("Opening connection after changing rank").isEqualTo(reqd);
 		// test protocol2
 		url = new URL(protocol2 + "://test");
 		con = url.openConnection();
 		// no change for this
 		reqd = urlHandler1.getConnectionObject();
-		assertEquals("Opening connection for protocol" + protocol2, reqd, con);
+		assertThat(con).as("Opening connection for protocol" + protocol2).isEqualTo(reqd);
 	}
 
 	// ******************************************************
@@ -190,13 +207,14 @@ public class UrlHandlerControl extends OSGiTestCase {
 	/**
 	 * Test whether the content handler points to the highest ranking service
 	 */
+	@Test
 	public void testContentHandlerAfterChangingRank() throws Exception {
 		// increase content handler ranking for handler2
 		contentServiceProperty2.put(Constants.SERVICE_RANKING, Integer.valueOf(15));
 		contentHandlerSerReg2.setProperties(contentServiceProperty2);
 		URL url = new URL(protocol1 + "://test");
 		Object ob = url.getContent();
-		assertEquals("Get content", "CustomContentHandler2", ob);
+		assertThat(ob).as("Get content").isEqualTo("CustomContentHandler2");
 	}
 
 	// ******************************************************
@@ -205,20 +223,20 @@ public class UrlHandlerControl extends OSGiTestCase {
 	 * Test whether the content handler returns the "input stream" when there is
 	 * no associated content handler present
 	 */
+	@Test
 	public void testContentHandlerWhenHandlerIsUnregisterd() throws Exception {
 		contentHandlerSerReg2.unregister();
 		URL url = new URL(protocol1 + "://test");
 		Object ob = url.getContent();
 		// content handler 1 still remains.
-		assertEquals("Get content", "CustomContentHandler1", ob);
+		assertThat(ob).as("Get content").isEqualTo("CustomContentHandler1");
 		// unregister the renaming handler
 		contentHandlerSerReg1.unregister();
 		url = new URL(protocol1 + "://test");
 		InputStream in = (InputStream) url.getContent();
 		byte[] buf = new byte[in.available()];
 		in.read(buf);
-		assertEquals("Get content should return input stream",
-				"CustomUrlConnection1", new String(buf));
+		assertThat(new String(buf)).as("Get content should return input stream").isEqualTo("CustomUrlConnection1");
 	}
 
 	// ******************************************************
@@ -227,6 +245,7 @@ public class UrlHandlerControl extends OSGiTestCase {
 	 * Test whether the url handler throws the required exception when the
 	 * registered handlers are removed
 	 */
+	@Test
 	public void testUrlHandlerWhenHandlerIsUnregistered() throws Exception {
 		// unregister service 2
 		urlHandlerSerReg2.unregister();
@@ -235,7 +254,7 @@ public class UrlHandlerControl extends OSGiTestCase {
 		URLConnection con = url.openConnection();
 		// only handler 1 remains
 		URLConnection reqd = urlHandler1.getConnectionObject();
-		assertEquals("Opening connection", reqd, con);
+		assertThat(con).as("Opening connection").isEqualTo(reqd);
 		urlHandlerSerReg1.unregister();
 		try {
 			String u = protocol1 + "://test";
@@ -248,15 +267,7 @@ public class UrlHandlerControl extends OSGiTestCase {
 		catch (Exception e) {
 			fail("Expecting a Malformed Url Exception", e);
 		}
-		try {
-			url.toExternalForm();
-			fail("toExternalForm did not fail as expected");
-		}
-		catch (IllegalStateException e) {
-			// expected
-		}
-		catch (Exception e) {
-			fail("Expecting an IllegalState Exception", e);
-		}
+		assertThatExceptionOfType(IllegalStateException.class).as("toExternalForm did not fail as expected")
+				.isThrownBy(() -> url.toExternalForm());
 	}
 }
